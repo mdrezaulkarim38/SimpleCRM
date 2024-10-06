@@ -1,0 +1,17 @@
+﻿@model SimpleCRM.Models.User
+@{
+    ViewData["Title"] = "Login";
+}
+<h2>User Login</h2>
+
+<form asp-action="Login" method="post">
+    <div>
+        <label>Username</label>
+        <input type="text" asp-for="Username" />
+    </div>
+    <div>
+        <label>Password</label>
+        <input type="password" asp-for="Password" />
+    </div>
+    <button type="submit">Login</button>
+</form>
