@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using SimpleCRM.Data;
 using SimpleCRM.Models;
 using SimpleCRM.Services;
-
 namespace SimpleCRM.Controllers
 {
     public class AuthController : Controller
@@ -26,37 +25,45 @@ namespace SimpleCRM.Controllers
 
         [HttpPost]
         public async Task<IActionResult> Register(User model)
-        {
-            if (ModelState.IsValid)
-            {
-                // Check if the username or email already exists
-                var existingUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == model.Username || u.Email == model.Email);
+        {          
+            if (!ModelState.IsValid)
+            {             
+                return View(model);
+            }
+
+            try
+            {               
+                var existingUser = await _dbContext.Users
+                    .FirstOrDefaultAsync(u => u.Username.ToLower() == model.Username.ToLower()
+                                              || u.Email.ToLower() == model.Email.ToLower());
+             
                 if (existingUser != null)
-                {
-                    ModelState.AddModelError(string.Empty, "Username or email is already taken");
+                {                   
+                    TempData["ErrorMessage"] = "Username or email is already taken. Please use a different one.!";
                     return View(model);
-                }
-
-                // Hash the password before storing it
+                }                
                 var hashedPassword = BCrypt.Net.BCrypt.HashPassword(model.Password);
-
+                
                 var newUser = new User
                 {
                     FirstName = model.FirstName,
                     LastName = model.LastName,
                     Username = model.Username,
                     Email = model.Email,
-                    Password = hashedPassword, // Save hashed password                   
+                    Password = hashedPassword 
                 };
-
+                
                 _dbContext.Users.Add(newUser);
                 await _dbContext.SaveChangesAsync();
 
-                // Redirect to the Login page upon successful registration
+                TempData["SuccessMessage"] = "Registration successful! Please login to continue.";
                 return RedirectToAction("Login");
             }
-
-            return View(model);
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "An error occurred during registration. Please try again.!";
+                return View(model);
+            }
         }
 
         [HttpGet]
@@ -64,29 +71,34 @@ namespace SimpleCRM.Controllers
         {
             return View();
         }
-        // Handle Login Form Submission
-        [HttpPost]
-        public async Task<IActionResult> Login(User model)
-        {
-            if (ModelState.IsValid)
-            {
-                var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == model.Username);
 
-                // Check if user exists and validate the password
+        [HttpPost]
+        public async Task<IActionResult> Login([FromBody] User model)
+        {
+            if (string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Password))
+            {
+                ModelState.AddModelError(string.Empty, "Username or Password is missing.");
+                return View(model);
+            }
+            try
+            {
+                var user = await _dbContext.Users
+                    .FirstOrDefaultAsync(u => u.Username.ToLower() == model.Username.ToLower());
+
                 if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
                 {
-                    ModelState.AddModelError(string.Empty, "Invalid credentials");
+                    ModelState.AddModelError(string.Empty, "Invalid username or password.");
                     return View(model);
                 }
 
-                // Generate a token (optional) or create an authenticated session
+                // Generate JWT token
                 var token = _tokenService.GenerateToken(user.Id.ToString(), user.Username);
-
-                // Redirect to a dashboard or home page upon successful login
-                return RedirectToAction("Index", "Home");
+                return Json(new { success = true, token }); // Return the token
             }
-
-            return View(model);
+            catch (Exception)
+            {
+                return Json(new { success = false, message = "An error occurred during login." });                
+            }
         }
         public IActionResult Index()
         {

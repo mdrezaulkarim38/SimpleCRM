@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using SimpleCRM.Data; // Update this with your actual namespace
-using SimpleCRM.Services; // Update this with your actual namespace
+using SimpleCRM.Data;
+using SimpleCRM.Services;
 using System.Text;
 
 

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SimpleCRM.Models;
 
@@ -11,13 +12,12 @@ public class HomeController : Controller
     public HomeController(ILogger<HomeController> logger)
     {
         _logger = logger;
-    }
-
+    }    
     public IActionResult Index()
     {
         return View();
     }
-
+    [Authorize]
     public IActionResult Privacy()
     {
         return View();
